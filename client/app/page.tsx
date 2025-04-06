@@ -1,7 +1,8 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { fido2Create, fido2Get } from "@ownid/webauthn";
+import { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import { fido2Create, fido2Get } from "@ownid/webauthn"
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
@@ -26,8 +27,8 @@ export default function Home() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(fidoData)
-    }).then(res => res.json());
-    if(response) {
+    }).then(res => res.json());   
+    if(response === true) {
       router.push('/dashboard');
     }
     else {
@@ -47,19 +48,30 @@ export default function Home() {
         setError('Login failed');
         console.error(err);
       });
-    console.log('Server response:', response);
-    console.log('Challenge format:', typeof response.challenge, response.challenge);
-    const challenge = base64urlToUint8Array(response.challenge);
-    const options = {...response, challenge: challenge} as PublicKeyCredentialRequestOptions;
-    const assertion = await fido2Get(options, username);
-    await fetch('http://localhost:3001/login/finish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(assertion)
-    }).then(res => res.json());
-    console.log('Login successful');
+    const optionsJSON = response as PublicKeyCredentialRequestOptionsJSON; 
+
+    console.log(optionsJSON);
+    
+    try {
+      const assertion = await fido2Get(optionsJSON, username);
+      const loginResponse = await fetch('http://localhost:3001/login/finish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({assertion})
+      }).then(res => res.json());
+      
+      if (loginResponse) {
+        console.log('Login successful');
+        router.push('/dashboard');
+      } else {
+        setError('Login failed');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Authentication failed');
+    }
   };
 
   return (
@@ -90,35 +102,4 @@ export default function Home() {
       </form>
     </div>
   );
-}
-
-function base64urlToUint8Array(base64url: string): Uint8Array {
-  try {
-    // Remove any whitespace
-    base64url = base64url.trim();
-    
-    // Step 1: Convert base64url to base64
-    const base64 = base64url
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-      .replace(/\s/g, '');
-
-    // Step 2: Add padding if necessary
-    const pad = base64.length % 4;
-    const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
-
-    // Step 3: Decode base64 to binary string
-    const binaryString = window.atob(paddedBase64);
-
-    // Step 4: Convert binary string to Uint8Array
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-  } catch (error) {
-    console.error('Error decoding base64url:', error);
-    console.error('Input string:', base64url);
-    throw error;
-  }
 }
