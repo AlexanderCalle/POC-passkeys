@@ -2,15 +2,12 @@ import express from 'express';
 import path from 'path';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import prismaClient from './client';
-import constData from './const';
+import { prismaClient } from './src/client';
+import { WEBPORT } from './src/const';
 
-import indexRoutes from './routes/index';
-import authRoutes from './routes/auth';
-import notFoundRoute from './routes/notFound';
+import authRoutes from './src/routes/auth';
 
 const app = express();
-const PORT = constData.WEBPORT;
 const prisma = prismaClient;
 
 async function main() {
@@ -19,16 +16,10 @@ async function main() {
     app.use(express.json());
     app.use(express.static(path.join(__dirname, 'front')));
 
-    // using ejs for view
-    app.set('views', path.join(__dirname, 'views'));
-    app.set('view engine', 'ejs');
-
-    app.use('/', indexRoutes);
     app.use('/', authRoutes);
-    app.use(notFoundRoute);
     
-    app.listen(PORT, () => {
-        console.info(`Server started on port: ${PORT}`);
+    app.listen(WEBPORT, () => {
+        console.info(`Server started on port: ${WEBPORT}`);
     });
 }
 

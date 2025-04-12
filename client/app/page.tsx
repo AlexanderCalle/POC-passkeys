@@ -12,26 +12,50 @@ export default function Home() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    const publicKey = await fetch('http://localhost:3001/register/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username: username })
-    }).then(res => res.json());
-    console.log(publicKey);
-    const fidoData = await fido2Create(publicKey, username);
-    const response = await fetch('http://localhost:3001/register/finish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(fidoData)
-    }).then(res => res.json());   
-    if(response === true) {
-      router.push('/dashboard');
-    }
-    else {
+    try {
+      const startResponse = await fetch('http://localhost:3001/api/auth/register/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username })
+      });
+
+      if (!startResponse.ok) {
+        throw new Error(`HTTP error! status: ${startResponse.status}`);
+      }
+
+      const publicKey = await startResponse.json();
+
+      const fidoData = await fido2Create(publicKey, username);
+
+      // Complete registration
+      const response = await fetch('http://localhost:3001/api/auth/register/finish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(fidoData)
+      }).then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      });
+
+      if (response.verified) {
+        router.push('/dashboard');
+      } else {
+        setError('Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
       setError('Registration failed');
     }
   };
@@ -42,16 +66,14 @@ export default function Home() {
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include', 
       body: JSON.stringify({ username: username })
     }).then(res => res.json())
       .catch(err => {
         setError('Login failed');
         console.error(err);
       });
-    const optionsJSON = response as PublicKeyCredentialRequestOptionsJSON; 
-
-    console.log(optionsJSON);
-    
+    const optionsJSON = response as PublicKeyCredentialRequestOptionsJSON;     
     try {
       const assertion = await fido2Get(optionsJSON, username);
       const loginResponse = await fetch('http://localhost:3001/login/finish', {
@@ -59,17 +81,16 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({assertion})
       }).then(res => res.json());
       
       if (loginResponse) {
-        console.log('Login successful');
         router.push('/dashboard');
       } else {
         setError('Login failed');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Authentication failed');
     }
   };

@@ -11,10 +11,6 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 
-interface User {
-  username: string;
-  registrationInfo: any;
-}
 
 let users: Record<string, any> = {};
 
@@ -38,7 +34,7 @@ app.post('/register/start', async (req, res) => {
     timeout: 60000,
     attestationType: 'none',
     authenticatorSelection: {
-        residentKey: 'discouraged',
+        residentKey: 'preferred',
         userVerification: 'preferred',
     },
     supportedAlgorithmIDs: [-7, -257],
@@ -107,17 +103,13 @@ app.post('/login/start', async (req, res) => {
 
 //@ts-ignore
 app.post('/login/finish', async (req, res) => {
-    let username = req.body.assertion.username;
-    console.log(req.body.assertion);
-    
+    let username = req.body.assertion.username;    
     if (!users[username]) {
         return res.status(404).send({ error: 'User not found' });
     }
-
     let verification;
     try {
         const user = users[username];
-        console.log (req.body.data);
         const response: AuthenticationResponseJSON = req.body.assertion.data;
         
         verification = await verifyAuthenticationResponse({
@@ -136,13 +128,11 @@ app.post('/login/finish', async (req, res) => {
             requireUserVerification: false
         });
     } catch (error) {
-        console.error(error);
         if(error instanceof Error)
           return res.status(400).send({error: error.message});
         return res.status(500).send(false);
     }
     const {verified} = verification;
-    console.log(verified);
     return res.status(200).send(verified);
 });
 

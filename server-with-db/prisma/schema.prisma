@@ -14,10 +14,11 @@ datasource db {
 }
 
 model User {
-  id      Int    @id @default(autoincrement())
-  name    String
-  email   String @unique
-  devices Json   @default("[]")
+  id       Int       @id @default(autoincrement())
+  name     String?
+  username String    @unique
+  devices  Json      @default("[]")
+  PassKey  PassKey[]
 
   @@map(name: "users")
 }
@@ -27,8 +28,9 @@ model PassKey {
   passkey_id      String
   public_key      Bytes
   user_id         Int
+  user            User    @relation(fields: [user_id], references: [id])
   webauthnUser_id String
-  counter         Int
+  counter         BigInt
   device_type     String
   back_up         Boolean
   devices         Json
