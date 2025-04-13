@@ -1,10 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import { generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyRegistrationResponse } from '@simplewebauthn/server';
+import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
 import config from '../config/config';
 import { createUser, getUser, updateUser } from '../services/user.service';
 import { createPasskey, getUserPaskeys } from '../services/passkey.service';
 
 const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
+type UserDevices = Array<{ 
+  credentialID: string;
+  credentialPublicKey: string;
+  counter: number;
+  transports: AuthenticatorTransport[];
+}>;
 
 export const registrationStart = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -20,8 +26,10 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
       userName: username,
       timeout: 60000,
       attestationType: 'none',
-      excludeCredentials: passkeys?.map(passkey => ({
-        id: passkey.passkey_id,
+      excludeCredentials: (user?.devices as UserDevices).map((device) => ({
+        id: device.credentialID,
+        type: 'public-key',
+        transports: device.transports,
       })),
       authenticatorSelection: {
         residentKey: 'required',
@@ -38,19 +46,6 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
     
     req.session.currentChallenge = challengeBase64;
     req.session.webAuthnUserID = options.user.id;
-    
-    await new Promise<void>((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return reject(err);
-        }
-        console.log('Session saved successfully');
-        console.log('Session ID:', req.session.id);
-        console.log('Challenge:', req.session.currentChallenge);
-        resolve();
-      });
-    });
 
     res.setHeader('Set-Cookie', [
       `webauthn.sid=${req.session.id}; Path=/; HttpOnly; SameSite=Lax`
@@ -145,5 +140,87 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     res.status(200).send({ verified });
   } catch (error) {
     next(error)
+  }
+}
+
+export const authenticationStart = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const username = req.body.username;
+    const user = await getUser(username);
+    if (!user) {
+      res.status(404).send(false);
+      return;
+    }
+    
+    const opts: GenerateAuthenticationOptionsOpts = {
+        timeout: 60000,
+        allowCredentials: (user.devices as UserDevices).map((device) => ({
+          id: device.credentialID,
+          transports: device.transports,
+        })),
+        userVerification: 'preferred',
+        rpID: config.replyingPartyId,
+    };
+
+    const options = await generateAuthenticationOptions(opts);
+    req.session.currentChallenge = options.challenge;
+
+    res.json(options);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyAuthentication = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { assertion } = req.body;
+    const user = await getUser(assertion.username);
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+    if (!req.session.currentChallenge) {
+      return res.status(400).send({ error: 'Challenge not found' });
+    }
+
+    let dbAuthenticator: WebAuthnCredential | null = null;
+    for (const dev of (user.devices as UserDevices)) {
+      if (dev.credentialID === assertion.data.id) {
+          dbAuthenticator = {
+            id: dev.credentialID,
+            publicKey: Buffer.from(dev.credentialPublicKey, 'base64'),
+            counter: dev.counter,
+          };
+          break;
+      }
+    }
+    if (!dbAuthenticator) {
+      return res.status(400).send({ error: 'Authenticator not found' });
+    }
+
+    let verification;
+    try {
+      const response: AuthenticationResponseJSON = req.body.assertion.data;
+      
+      verification = await verifyAuthenticationResponse({
+        response: {
+          ...response,
+          type: 'public-key',
+        },
+        expectedChallenge: req.session.currentChallenge,
+        credential: dbAuthenticator,
+        expectedRPID: config.replyingPartyId,
+        expectedOrigin: config.origin,
+        requireUserVerification: false
+      });
+    } catch (error) {
+      if(error instanceof Error)
+        return res.status(400).send({error: error.message});
+      return res.status(500).send(false);
+    }
+  const {verified} = verification;
+  return res.status(200).send(verified);
+  }
+  catch (error) {
+    next(error);
   }
 }

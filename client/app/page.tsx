@@ -1,10 +1,16 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 import { fido2Create, fido2Get } from "@ownid/webauthn"
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+
+type UserDevice = { 
+  id: string;
+  credentialPublicKey: string;
+  counter: number;
+  transports: AuthenticatorTransport[];
+};
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -27,6 +33,15 @@ export default function Home() {
       }
 
       const publicKey = await startResponse.json();
+
+      if(publicKey.excludeCredentials) {
+        publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred: UserDevice) => {
+          return {
+            ...cred,
+            id: new Uint8Array(Buffer.from(cred.id, 'base64'))
+          };
+        });
+      }
 
       const fidoData = await fido2Create(publicKey, username);
 
@@ -61,7 +76,7 @@ export default function Home() {
   };
 
   const handleLogin = async () => {
-    const response = await fetch('http://localhost:3001/login/start', {
+    const response = await fetch('http://localhost:3001/api/auth/login/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -73,10 +88,19 @@ export default function Home() {
         setError('Login failed');
         console.error(err);
       });
-    const optionsJSON = response as PublicKeyCredentialRequestOptionsJSON;     
+    const optionsJSON = response;     
     try {
+
+      // if(optionsJSON.allowCredentials) {
+      //   optionsJSON.allowCredentials = optionsJSON.allowCredentials?.map((cred: UserDevice) => ({
+      //     ...cred,
+      //     id: new Uint8Array(Buffer.from(cred.id, 'base64')),  // Keep the base64 string as is
+      //   }));
+      //   console.log(optionsJSON.allowCredentials);
+      // }
+
       const assertion = await fido2Get(optionsJSON, username);
-      const loginResponse = await fetch('http://localhost:3001/login/finish', {
+      const loginResponse = await fetch('http://localhost:3001/api/auth/login/finish', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -90,7 +114,8 @@ export default function Home() {
       } else {
         setError('Login failed');
       }
-    } catch {
+    } catch (error) {
+      console.error('Authentication failed', error);
       setError('Authentication failed');
     }
   };

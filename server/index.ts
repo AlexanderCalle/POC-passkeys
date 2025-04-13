@@ -106,27 +106,28 @@ app.post('/login/finish', async (req, res) => {
     let username = req.body.assertion.username;    
     if (!users[username]) {
         return res.status(404).send({ error: 'User not found' });
-    }
+    }    
+
     let verification;
     try {
-        const user = users[username];
-        const response: AuthenticationResponseJSON = req.body.assertion.data;
-        
-        verification = await verifyAuthenticationResponse({
-            response: {
-              ...response,
-              type: 'public-key',
-            },
-            expectedChallenge: challenges[username],
-            credential: {
-              id: user.credential.id,
-              publicKey: user.credential.publicKey,
-              counter: user.credential.counter,
-            },
-            expectedRPID: relying_party_id,
-            expectedOrigin: expected_origin,
-            requireUserVerification: false
-        });
+      const user = users[username];
+      const response: AuthenticationResponseJSON = req.body.assertion.data;
+      
+      verification = await verifyAuthenticationResponse({
+        response: {
+          ...response,
+          type: 'public-key',
+        },
+        expectedChallenge: challenges[username],
+        credential: {
+          id: user.credential.id,
+          publicKey: user.credential.publicKey,
+          counter: user.credential.counter,
+        },
+        expectedRPID: relying_party_id,
+        expectedOrigin: expected_origin,
+        requireUserVerification: false
+      });
     } catch (error) {
         if(error instanceof Error)
           return res.status(400).send({error: error.message});
