@@ -176,49 +176,47 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
     const { assertion } = req.body;
     const user = await getUser(assertion.username);
     if (!user) {
-      return res.status(404).send({ error: 'User not found' });
+      res.status(404).send({ error: 'User not found' });
+      return
     }
     if (!req.session.currentChallenge) {
-      return res.status(400).send({ error: 'Challenge not found' });
+      res.status(400).send({ error: 'Challenge not found' });
+      return
     }
 
     let dbAuthenticator: WebAuthnCredential | null = null;
     for (const dev of (user.devices as UserDevices)) {
       if (dev.credentialID === assertion.data.id) {
-          dbAuthenticator = {
-            id: dev.credentialID,
-            publicKey: Buffer.from(dev.credentialPublicKey, 'base64'),
-            counter: dev.counter,
-          };
-          break;
+        dbAuthenticator = {
+          id: dev.credentialID,
+          publicKey: Buffer.from(dev.credentialPublicKey, 'base64'),
+          counter: dev.counter,
+        };
+        break;
       }
     }
     if (!dbAuthenticator) {
-      return res.status(400).send({ error: 'Authenticator not found' });
+      res.status(400).send({ error: 'Authenticator not found' });
+      return
     }
 
     let verification;
-    try {
-      const response: AuthenticationResponseJSON = req.body.assertion.data;
-      
-      verification = await verifyAuthenticationResponse({
-        response: {
-          ...response,
-          type: 'public-key',
-        },
-        expectedChallenge: req.session.currentChallenge,
-        credential: dbAuthenticator,
-        expectedRPID: config.replyingPartyId,
-        expectedOrigin: config.origin,
-        requireUserVerification: false
-      });
-    } catch (error) {
-      if(error instanceof Error)
-        return res.status(400).send({error: error.message});
-      return res.status(500).send(false);
-    }
-  const {verified} = verification;
-  return res.status(200).send(verified);
+    const response: AuthenticationResponseJSON = req.body.assertion.data;
+    
+    verification = await verifyAuthenticationResponse({
+      response: {
+        ...response,
+        type: 'public-key',
+      },
+      expectedChallenge: req.session.currentChallenge,
+      credential: dbAuthenticator,
+      expectedRPID: config.replyingPartyId,
+      expectedOrigin: config.origin,
+      requireUserVerification: false
+    });
+   
+    const {verified} = verification;
+    res.status(200).send(verified);
   }
   catch (error) {
     next(error);

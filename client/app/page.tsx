@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { fido2Create, fido2Get } from "@ownid/webauthn"
+import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
@@ -43,7 +43,7 @@ export default function Home() {
         });
       }
 
-      const fidoData = await fido2Create(publicKey, username);
+      const fidoData = await startRegistration(publicKey);
 
       // Complete registration
       const response = await fetch('http://localhost:3001/api/auth/register/finish', {
@@ -90,16 +90,14 @@ export default function Home() {
       });
     const optionsJSON = response;     
     try {
+      if(optionsJSON.allowCredentials) {
+        optionsJSON.allowCredentials = optionsJSON.allowCredentials?.map((cred: UserDevice) => ({
+          ...cred,
+          id: cred.id,
+        }));
+      }
 
-      // if(optionsJSON.allowCredentials) {
-      //   optionsJSON.allowCredentials = optionsJSON.allowCredentials?.map((cred: UserDevice) => ({
-      //     ...cred,
-      //     id: new Uint8Array(Buffer.from(cred.id, 'base64')),  // Keep the base64 string as is
-      //   }));
-      //   console.log(optionsJSON.allowCredentials);
-      // }
-
-      const assertion = await fido2Get(optionsJSON, username);
+      const assertion = await startAuthentication(optionsJSON);
       const loginResponse = await fetch('http://localhost:3001/api/auth/login/finish', {
         method: 'POST',
         headers: {
