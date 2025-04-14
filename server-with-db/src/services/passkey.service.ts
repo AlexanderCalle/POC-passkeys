@@ -20,7 +20,6 @@ export const createPasskey = async (passkey: {
   counter: bigint;
   device_type: string;
   back_up: boolean;
-  devices: any;
 }) => {
   const passKey = await prisma.passKey.create({
     data: passkey,

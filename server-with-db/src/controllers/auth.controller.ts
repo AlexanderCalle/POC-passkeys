@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, json } from 'express';
 import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
 import config from '../config/config';
 import { createUser, getUser, updateUser } from '../services/user.service';
@@ -26,10 +26,10 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
       userName: username,
       timeout: 60000,
       attestationType: 'none',
-      excludeCredentials: (user?.devices as UserDevices).map((device) => ({
-        id: device.credentialID,
+      excludeCredentials: passkeys?.map((passkey) => ({
+        id: passkey.passkey_id,
         type: 'public-key',
-        transports: device.transports,
+        transports: [passkey.device_type] as AuthenticatorTransport[],
       })),
       authenticatorSelection: {
         residentKey: 'required',
@@ -100,12 +100,13 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     const {verified, registrationInfo} = verification;
     if (verified && registrationInfo) {
       let user = await getUser(username);
+      const passkeys = await getUserPaskeys(user);
       if (!user) {
         user = await createUser(username);
       }
 
       const { credential } = registrationInfo;
-      const existingDevice = (user.devices as Array<{ credentialID: string }>)?.find((device: { credentialID: string }) => device.credentialID === credential.id);;
+      const existingDevice = passkeys?.find(passkey => passkey.passkey_id === credential.id);
       
       const publicKeyToStore = contextBuffer(credential.publicKey);
 
@@ -116,7 +117,6 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
           counter: credential.counter,
           transports: response.response.transports,
         };
-        (user.devices as Array<{ credentialID: string }>)?.push(newDevice);
       }
 
       await updateUser(user.id, user);
@@ -130,7 +130,6 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
         counter: BigInt(credential.counter),
         device_type: registrationInfo.credentialDeviceType,
         back_up: registrationInfo.credentialBackedUp,
-        devices: user.devices,
       })
       res.cookie('user', JSON.stringify({ id: user.id, name: user.name }), { maxAge: 3600000 });
     }
@@ -147,19 +146,20 @@ export const authenticationStart = async (req: Request, res: Response, next: Nex
   try {
     const username = req.body.username;
     const user = await getUser(username);
+    const passkeys = await getUserPaskeys(user);
     if (!user) {
       res.status(404).send(false);
       return;
     }
     
     const opts: GenerateAuthenticationOptionsOpts = {
-        timeout: 60000,
-        allowCredentials: (user.devices as UserDevices).map((device) => ({
-          id: device.credentialID,
-          transports: device.transports,
-        })),
-        userVerification: 'preferred',
-        rpID: config.replyingPartyId,
+      timeout: 60000,
+      allowCredentials: passkeys?.map((passkey) => ({
+        id: passkey.passkey_id,
+        transports: [passkey.device_type] as AuthenticatorTransport[],
+      })),
+      userVerification: 'preferred',
+      rpID: config.replyingPartyId,
     };
 
     const options = await generateAuthenticationOptions(opts);
@@ -173,8 +173,10 @@ export const authenticationStart = async (req: Request, res: Response, next: Nex
 
 export const verifyAuthentication = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { assertion } = req.body;
-    const user = await getUser(assertion.username);
+    const { assertion, username } = req.body;
+    const user = await getUser(username);
+    const passkeys = await getUserPaskeys(user);
+    
     if (!user) {
       res.status(404).send({ error: 'User not found' });
       return
@@ -185,12 +187,17 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
     }
 
     let dbAuthenticator: WebAuthnCredential | null = null;
-    for (const dev of (user.devices as UserDevices)) {
-      if (dev.credentialID === assertion.data.id) {
+    if (!passkeys) {
+      res.status(400).send({ error: 'No passkeys found' });
+      return
+    }
+
+    for (const passkey of passkeys) {
+      if (passkey.passkey_id === assertion.id) {
         dbAuthenticator = {
-          id: dev.credentialID,
-          publicKey: Buffer.from(dev.credentialPublicKey, 'base64'),
-          counter: dev.counter,
+          id: passkey.passkey_id,
+          publicKey: passkey.public_key,
+          counter: Number(passkey.counter),
         };
         break;
       }
@@ -201,8 +208,7 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
     }
 
     let verification;
-    const response: AuthenticationResponseJSON = req.body.assertion.data;
-    
+    const response: AuthenticationResponseJSON = req.body.assertion;    
     verification = await verifyAuthenticationResponse({
       response: {
         ...response,

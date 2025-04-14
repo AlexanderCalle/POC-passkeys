@@ -17,7 +17,6 @@ model User {
   id       Int       @id @default(autoincrement())
   name     String?
   username String    @unique
-  devices  Json      @default("[]")
   PassKey  PassKey[]
 
   @@map(name: "users")
@@ -33,7 +32,6 @@ model PassKey {
   counter         BigInt
   device_type     String
   back_up         Boolean
-  devices         Json
 
   @@map(name: "passkeys")
 }

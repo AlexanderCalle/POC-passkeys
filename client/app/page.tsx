@@ -104,10 +104,10 @@ export default function Home() {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({assertion})
+        body: JSON.stringify({assertion, username})
       }).then(res => res.json());
       
-      if (loginResponse) {
+      if (loginResponse === true) {
         router.push('/dashboard');
       } else {
         setError('Login failed');
