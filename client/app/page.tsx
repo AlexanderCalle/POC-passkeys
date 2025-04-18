@@ -1,16 +1,11 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-
-type UserDevice = { 
-  id: string;
-  credentialPublicKey: string;
-  counter: number;
-  transports: AuthenticatorTransport[];
-};
+import { Key } from "lucide-react";
+import { login, register } from "@/services/auth.service";
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -19,102 +14,21 @@ export default function Home() {
 
   const handleRegister = async () => {
     try {
-      const startResponse = await fetch('http://localhost:3001/api/auth/register/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username })
-      });
-
-      if (!startResponse.ok) {
-        throw new Error(`HTTP error! status: ${startResponse.status}`);
-      }
-
-      const publicKey = await startResponse.json();
-
-      if(publicKey.excludeCredentials) {
-        publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred: UserDevice) => {
-          return {
-            ...cred,
-            id: new Uint8Array(Buffer.from(cred.id, 'base64'))
-          };
-        });
-      }
-
-      const fidoData = await startRegistration(publicKey);
-
-      // Complete registration
-      const response = await fetch('http://localhost:3001/api/auth/register/finish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(fidoData)
-      }).then(async (res) => {
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-        }
-        return res.json();
-      });
-
-      if (response.verified) {
-        router.push('/dashboard');
-      } else {
-        setError('Registration failed');
-      }
+      await register(username);
+      router.push('/dashboard');
     } catch (error) {
-      console.error('Registration error:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
+      console.error('Registration failed', error);
       setError('Registration failed');
     }
   };
 
   const handleLogin = async () => {
-    const response = await fetch('http://localhost:3001/api/auth/login/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include', 
-      body: JSON.stringify({ username: username })
-    }).then(res => res.json())
-      .catch(err => {
-        setError('Login failed');
-        console.error(err);
-      });
-    const optionsJSON = response;     
     try {
-      if(optionsJSON.allowCredentials) {
-        optionsJSON.allowCredentials = optionsJSON.allowCredentials?.map((cred: UserDevice) => ({
-          ...cred,
-          id: cred.id,
-        }));
-      }
-
-      const assertion = await startAuthentication(optionsJSON);
-      const loginResponse = await fetch('http://localhost:3001/api/auth/login/finish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({assertion, username})
-      }).then(res => res.json());
-      
-      if (loginResponse === true) {
-        router.push('/dashboard');
-      } else {
-        setError('Login failed');
-      }
+      await login(username);
+      router.push('/dashboard');
     } catch (error) {
-      console.error('Authentication failed', error);
-      setError('Authentication failed');
+      console.error('Login failed', error);
+      setError('Login failed');
     }
   };
 
@@ -141,7 +55,10 @@ export default function Home() {
           e.preventDefault();
           e.stopPropagation();
           handleLogin();
-        }}>Submit</Button>
+        }}>
+          <Key />
+          Signin
+        </Button>
         <span className="text-red-500">{error}</span>
       </form>
     </div>
