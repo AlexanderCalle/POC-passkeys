@@ -8,6 +8,7 @@ interface Config {
   replyingPartyId: string;
   relyingPartyName: string;
   origin: string;
+  jwtSecret: string;
   session: {
     secret: string;
   };
@@ -19,6 +20,7 @@ const config: Config = {
   replyingPartyId: process.env.REPLYING_PARTY_ID || 'localhost',
   relyingPartyName: process.env.REPLYING_PARTY_NAME || 'webauthn-app',
   origin: process.env.ORIGIN || 'http://localhost:3000',
+  jwtSecret: process.env.JWT_SECRET || 'secret',
   session: {
     secret: process.env.SESSION_SECRET || 'secret',
   },

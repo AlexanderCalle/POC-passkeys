@@ -3,6 +3,7 @@ import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuth
 import config from '../config/config';
 import { createUser, getUser, updateUser } from '../services/user.service';
 import { createPasskey, getUserPaskeys } from '../services/passkey.service';
+import jwt from 'jsonwebtoken';
 
 const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
 type UserDevices = Array<{ 
@@ -61,14 +62,8 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
 export const verifyRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, data: response } = req.body;    
-    console.log('Verify session ID:', req.session.id);
-    console.log('Verify session data:', {
-      currentChallenge: req.session.currentChallenge,
-      webAuthnUserID: req.session.webAuthnUserID
-    });
 
     if (!req.session.currentChallenge) {
-      console.error('No challenge found in session');
       res.status(400).json({ 
         error: 'Challenge not found',
         sessionId: req.session.id,
@@ -98,26 +93,16 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     }
 
     const {verified, registrationInfo} = verification;
+    let token: string = '';
     if (verified && registrationInfo) {
       let user = await getUser(username);
-      const passkeys = await getUserPaskeys(user);
       if (!user) {
         user = await createUser(username);
       }
 
       const { credential } = registrationInfo;
-      const existingDevice = passkeys?.find(passkey => passkey.passkey_id === credential.id);
       
       const publicKeyToStore = contextBuffer(credential.publicKey);
-
-      if (!existingDevice) {
-        const newDevice = {
-          credentialPublicKey: publicKeyToStore.toString('base64'),
-          credentialID: credential.id,
-          counter: credential.counter,
-          transports: response.response.transports,
-        };
-      }
 
       await updateUser(user.id, user);
 
@@ -132,11 +117,12 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
         back_up: registrationInfo.credentialBackedUp,
       })
       res.cookie('user', JSON.stringify({ id: user.id, name: user.name }), { maxAge: 3600000 });
+      token = await generateToken({ id: user.id, name: user.name });
     }
     req.session.currentChallenge = undefined;
     req.session.webAuthnUserID = undefined;
 
-    res.status(200).send({ verified });
+    res.status(200).send({ verified, token });
   } catch (error) {
     next(error)
   }
@@ -222,9 +208,16 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
     });
    
     const {verified} = verification;
-    res.status(200).send(verified);
+    const token = await generateToken(user);
+    res.status(200).send({verified, token});
   }
   catch (error) {
     next(error);
   }
+}
+
+const generateToken = async (user: any) => {
+  return await jwt.sign({ id: user.id, username: user.username }, config.jwtSecret, {
+    expiresIn: 3600,
+  });
 }

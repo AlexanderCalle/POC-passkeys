@@ -1,3 +1,4 @@
+import { deleteSession, setSession } from "@/lib/session";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 
 type UserDevice = { 
@@ -53,6 +54,8 @@ export const register = async (username: string) => {
     });
 
     if (response.verified) {
+
+      setSession(response.token, new Date(Date.now() + 3600000));
       return true;
     } else {
       throw new Error("Registration failed");
@@ -95,7 +98,10 @@ export const login = async (username: string) => {
       body: JSON.stringify({assertion, username})
     }).then(res => res.json());
     
-    if (loginResponse === true) {
+    console.log('loginResponse', loginResponse);
+    if (loginResponse.verified === true) {
+      console.log('token', loginResponse.token);
+      setSession(loginResponse.token, new Date(Date.now() + 3600000));
       return;
     } else {
       throw new Error('Login failed');
@@ -104,4 +110,9 @@ export const login = async (username: string) => {
     console.error('Authentication failed', error);
     throw new Error('Authentication failed');
   }
+}
+
+export const logout = async () => {
+  await deleteSession();
+  window.location.reload();
 }

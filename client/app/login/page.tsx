@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Key } from "lucide-react";
 import { login, register } from "@/services/auth.service";
+import "../globals.css";
 
 export default function Home() {
   const [username, setUsername] = useState("");
