@@ -1,29 +1,27 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
-import { Key } from "lucide-react";
-import { login } from "@/services/auth.service";
-import "../globals.css";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { register } from '@/services/auth.service';
+import { Key } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react'
 
-export default function Home() {
+const RegistrationPage = () => {
   const [username, setUsername] = useState("");
+  const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     try {
-      await login(username);
+      await register(username);
       router.push('/dashboard');
     } catch (error) {
-      console.error('Login failed', error);
-      setError('Login failed');
+      console.error('Registration failed', error);
+      setError('Registration failed');
     }
   };
-
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <h1 className="text-3xl font-bold">Passkeys POC</h1>
@@ -38,17 +36,25 @@ export default function Home() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
+        <label htmlFor="device-name">Device name</label>
+        <Input
+          id="device-name"
+          type="text"
+          value={deviceName}
+          onChange={(e) => setDeviceName(e.target.value)}
+        />
         <Button type="button" variant="default" onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          handleLogin();
+          handleRegister();
         }}>
           <Key />
-          Signin with passkey
+          Register passkey
         </Button>
-        <Link href="/register" className="text-blue-500 hover:underline">No passkey? Register one.</Link>
         <span className="text-red-500">{error}</span>
       </form>
     </div>
-  );
+  )
 }
+
+export default RegistrationPage
