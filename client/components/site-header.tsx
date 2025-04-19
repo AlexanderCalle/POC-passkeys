@@ -4,8 +4,16 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { logout } from "@/services/auth.service"
+import { usePathname } from "next/navigation"
+import { useMemo } from "react"
 
 export function SiteHeader() {
+  const pathname = usePathname()
+
+  const pageName = useMemo(() => {
+    const segment = pathname?.split("/").pop() || "Dashboard"
+    return segment === "dashboard" ? "Patients" : segment.charAt(0).toUpperCase() + segment.slice(1)
+  }, [pathname])
 
   const handleLogout = () => {
     logout();
@@ -19,7 +27,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">Patients</h1>
+        <h1 className="text-base font-medium">{pageName}</h1>
         <div className="ml-auto flex items-center gap-2">
           <Button onClick={handleLogout} variant="ghost" size="sm" className="hidden sm:flex">
             Logout

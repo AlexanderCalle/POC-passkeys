@@ -16,7 +16,6 @@ type UserDevices = Array<{
 export const registrationStart = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const username = req.body.username;
-    console.log('Initial session:', req.session.id);
 
     const user = await getUser(username);
     const passkeys = await getUserPaskeys(user);
@@ -62,7 +61,6 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
 export const verifyRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, name, deviceName, data } = req.body;    
-    console.log(req.body)
 
     if (!req.session.currentChallenge) {
       res.status(400).json({ 
