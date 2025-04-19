@@ -16,6 +16,7 @@ export const createPasskey = async (passkey: {
   passkey_id: string;
   public_key: Buffer;
   user_id: number;
+  name: string;
   webauthnUser_id: string;
   counter: bigint;
   device_type: string;

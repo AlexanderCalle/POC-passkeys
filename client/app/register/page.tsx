@@ -5,54 +5,166 @@ import { Input } from '@/components/ui/input';
 import { register } from '@/services/auth.service';
 import { Key } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+import { useForm } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from 'zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Stepper } from '@/components/stepper';
+import { useState } from 'react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+const schema = z.object({
+  username: z.string().min(1, { message: 'Username is required' }),
+  name: z.string().min(1, { message: 'Name is required' }),
+  deviceName: z.string().min(1, { message: 'Device name is required' }),
+});
 
 const RegistrationPage = () => {
-  const [username, setUsername] = useState("");
-  const [deviceName, setDeviceName] = useState("");
-  const [error, setError] = useState("");
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      username: "",
+      name: "",
+      deviceName: "",
+    },
+  });
   const router = useRouter();
 
-  const handleRegister = async () => {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const onSubmit = async (value: z.infer<typeof schema>) => {
     try {
-      await register(username);
+      await register(value);
       router.push('/dashboard');
     } catch (error) {
       console.error('Registration failed', error);
-      setError('Registration failed');
+      form.setError("root", { message: 'Registration failed' });
     }
   };
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <h1 className="text-3xl font-bold">Passkeys POC</h1>
-      <form className="flex flex-col gap-4" onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}>
-        <label htmlFor="username">Username</label>
-        <Input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <label htmlFor="device-name">Device name</label>
-        <Input
-          id="device-name"
-          type="text"
-          value={deviceName}
-          onChange={(e) => setDeviceName(e.target.value)}
-        />
-        <Button type="button" variant="default" onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleRegister();
-        }}>
-          <Key />
-          Register passkey
-        </Button>
-        <span className="text-red-500">{error}</span>
-      </form>
+      <Stepper
+        items={[
+          { title: 'Information', active: currentStep >= 0 },
+          { title: 'Passkey setup', active: currentStep >= 1 },
+        ]}
+      />
+      <Form {...form}>
+        {currentStep === 0 && (
+          <form className="flex flex-col gap-4" onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCurrentStep((prev) => prev + 1);
+          }}>
+            <FormMessage />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='john_doe'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Set a name for your account, this will be linked to your passkey.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='John Doe'
+                      {...field}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <Button type="submit">
+              Next
+            </Button>
+          </form>
+        )}
+        {currentStep === 1 && (
+          <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+            <FormMessage />
+            <FormField
+              control={form.control}
+              name="deviceName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Device name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='My Phone'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Set a name for your device, this will be linked to your passkey.
+                    <br />
+                    Makes it easier to manage your passkeys.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <Accordion type="single" collapsible>
+              <AccordionItem value="item-1">
+                <AccordionTrigger>How to register a passkey?</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Setting up a passkey is quick and secure. Here&apos;s how it works:</p>
+                    
+                    <ol className="list-decimal list-inside space-y-2 pl-2">
+                      <li>Click the &quot;Register a passkey&quot; button below</li>
+                      <li>On your phone:
+                        <ul className="list-disc list-inside pl-4 pt-1">
+                          <li>You&apos;ll be prompted to scan a QR code with your phone &apos; s camera</li>
+                          <li>This connects your phone securely to this registration</li>
+                        </ul>
+                      </li>
+                      <li>Follow your phone&apos;s prompts:
+                        <ul className="list-disc list-inside pl-4 pt-1">
+                          <li>Use your fingerprint, face recognition, or PIN to confirm</li>
+                          <li>This creates your passkey securely on your device</li>
+                        </ul>
+                      </li>
+                      <li>That&apos;s it! Your passkey is now set up and ready to use for future logins</li>
+                    </ol>
+
+                    <p className="pt-2">
+                      <strong>Note:</strong> Your passkey is securely stored on your device and never leaves it. 
+                      Only a verification code is sent to our servers.
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            <Button type="button" variant="secondary" onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setCurrentStep((prev) => prev - 1);
+            }}>
+              Back
+            </Button>
+            <Button type="submit">
+              <Key />
+              Register a passkey
+            </Button>
+          </form>
+        )}
+      </Form>
     </div>
   )
 }

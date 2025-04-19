@@ -24,6 +24,7 @@ model User {
 
 model PassKey {
   id              Int     @id @default(autoincrement())
+  name            String?
   passkey_id      String
   public_key      Bytes
   user_id         Int

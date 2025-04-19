@@ -9,7 +9,12 @@ type UserDevice = {
 };
 
 
-export const register = async (username: string) => {
+export const register = async (userInfo: {
+  username: string;
+  name: string;
+  deviceName: string;
+}) => {
+  const { username, name, deviceName } = userInfo;
   try {
     const startResponse = await fetch('http://localhost:3001/api/auth/register/start', {
       method: 'POST',
@@ -44,7 +49,7 @@ export const register = async (username: string) => {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(fidoData)
+      body: JSON.stringify({username, name, deviceName, data: fidoData})
     }).then(async (res) => {
       if (!res.ok) {
         const errorData = await res.json();

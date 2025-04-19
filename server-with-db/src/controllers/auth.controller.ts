@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, json } from 'express';
+import { Request, Response, NextFunction, json, response } from 'express';
 import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
 import config from '../config/config';
 import { createUser, getUser, updateUser } from '../services/user.service';
@@ -45,7 +45,7 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
     const challengeBuffer = Buffer.from(options.challenge);
     const challengeBase64 = challengeBuffer.toString('base64url');
     
-    req.session.currentChallenge = challengeBase64;
+    req.session.currentChallenge = options.challenge;
     req.session.webAuthnUserID = options.user.id;
 
     res.setHeader('Set-Cookie', [
@@ -61,7 +61,8 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
 
 export const verifyRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, data: response } = req.body;    
+    const { username, name, deviceName, data } = req.body;    
+    console.log(req.body)
 
     if (!req.session.currentChallenge) {
       res.status(400).json({ 
@@ -75,7 +76,7 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     let verification;
     try {
       verification = await verifyRegistrationResponse({
-        response,
+        response: data,
         expectedChallenge: req.session.currentChallenge,
         expectedOrigin: config.origin,
       });
@@ -97,7 +98,7 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     if (verified && registrationInfo) {
       let user = await getUser(username);
       if (!user) {
-        user = await createUser(username);
+        user = await createUser(username, name);
       }
 
       const { credential } = registrationInfo;
@@ -110,6 +111,7 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
       await createPasskey({
         passkey_id: credential.id,
         public_key: publicKeyToStore,
+        name: deviceName,
         user_id: user.id,
         webauthnUser_id: webAuthnUserID || '',
         counter: BigInt(credential.counter),
