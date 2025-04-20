@@ -1,9 +1,12 @@
-import { Request, Response, NextFunction, json, response } from 'express';
-import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
+import { Request, Response, NextFunction } from 'express';
 import config from '../config/config';
-import { createUser, getUser, updateUser } from '../services/user.service';
+import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
+import crypto from 'crypto';
+import { createUser, getUser } from '../services/user.service';
 import { createPasskey, getUserPaskeys } from '../services/passkey.service';
 import jwt from 'jsonwebtoken';
+import { redis } from '../lib/redis';
+import { transporter } from '../lib/nodemailer';
 
 export const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
 type UserDevices = Array<{ 
@@ -56,7 +59,7 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
 
 export const verifyRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, name, deviceName, data } = req.body;    
+    const { username, name, email, deviceName, data } = req.body;    
 
     if (!req.session.currentChallenge) {
       res.status(400).json({ 
@@ -90,7 +93,7 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     const {verified, registrationInfo} = verification;
     let token: string = '';
     if (verified && registrationInfo) {
-      const user = await createUser(username, name);
+      const user = await createUser(username, email, name);
       const { credential } = registrationInfo;
       const publicKeyToStore = contextBuffer(credential.publicKey);
 
@@ -201,6 +204,58 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
     res.status(200).send({verified, token});
   }
   catch (error) {
+    next(error);
+  }
+}
+
+export const sendOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { email } = req.body;
+  console.log("Send email")
+  if (!email) {
+    res.status(400).send({ error: 'Email is required' });
+    return;
+  }
+  
+  try {
+    const otp = crypto.randomInt(100000, 999999).toString();
+    await redis.setex(email, 300, otp);
+
+    await transporter.sendMail({
+      from: 'no-reply@despieghel.be',
+      to: email,
+      subject: 'OTP for webauthn-app',
+      text: `Your OTP is ${otp}. Valid for 5 minutes.`,
+    })
+
+    res.status(200).send({ message: "OTP sent to email" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const verifyOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { email, otp } = req.body;
+  
+  if (!email || !otp) {
+    res.status(400).send({ error: 'Email and OTP are required' });
+    return;
+  }
+
+  try {
+    const storedOTP = await redis.get(email);
+    console.log("storedOTP", storedOTP);
+    if (!storedOTP) {
+      res.status(400).send({ error: 'OTP expired or invalid' });
+      return;
+    }
+
+    if (storedOTP.toString() !== otp) {
+      res.status(400).send({ message: 'Invalid' });
+    }
+
+    await redis.del(email);
+    res.status(200).send({ message: 'Valid' });
+  } catch (error) {
     next(error);
   }
 }

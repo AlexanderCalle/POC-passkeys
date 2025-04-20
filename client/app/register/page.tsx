@@ -16,6 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 const schema = z.object({
   username: z.string().min(1, { message: 'Username is required' }),
   name: z.string().min(1, { message: 'Name is required' }),
+  email: z.string().min(1, { message: 'Email is required' }).email({ message: 'Invalid email' }),
   deviceName: z.string().min(1, { message: 'Device name is required' }),
 });
 
@@ -26,6 +27,7 @@ const RegistrationPage = () => {
     defaultValues: {
       username: "",
       name: "",
+      email: "",
       deviceName: "",
     },
   });
@@ -72,6 +74,24 @@ const RegistrationPage = () => {
                   </FormControl>
                   <FormDescription>
                     Set a name for your account, this will be linked to your passkey.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='john_doe@example.com'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Set a email for your account, this will be used to recover your account.
                   </FormDescription>
                 </FormItem>
               )}

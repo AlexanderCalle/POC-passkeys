@@ -10,11 +10,12 @@ export const getUser = async (username: string) => {
   return user;
 };
 
-export const createUser = async (username: string, name?: string) => {
+export const createUser = async (username: string, email: string, name?: string) => {
   const user = await prisma.user.create({
     data: {
       username,
-      name
+      name,
+      email,
     },
   });
   return user;

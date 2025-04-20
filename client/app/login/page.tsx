@@ -19,7 +19,12 @@ export default function Home() {
       await login(username);
       router.push('/dashboard');
     } catch (error) {
+
       console.error('Login failed', error);
+      if(error instanceof Error) {
+        setError(error.message ?? 'Login failed');
+        return;
+      }
       setError('Login failed');
     }
   };
@@ -46,7 +51,7 @@ export default function Home() {
           <Key />
           Signin with passkey
         </Button>
-        <Link href="/register" className="text-blue-500 hover:underline">No passkey? Register one.</Link>
+        <Link href="/register" className="text-blue-500 hover:underline">No account yet? Create an account.</Link>
         <span className="text-red-500">{error}</span>
       </form>
     </div>

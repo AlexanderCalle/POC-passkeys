@@ -52,7 +52,10 @@ const ProfilePage = () => {
         }
       })
     } catch (error) {
-      setError(error.message)
+      if(error instanceof Error) {
+        setError(error.message)
+      }
+      setError('Creating failed')
       console.error('Registration failed', error);
     }
   }
@@ -76,6 +79,10 @@ const ProfilePage = () => {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-muted-foreground">Username</label>
             <div className="text-lg">{user?.username}</div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-muted-foreground">Email</label>
+            <div className="text-lg">{user?.email}</div>
           </div>
         </CardContent>
       </Card>

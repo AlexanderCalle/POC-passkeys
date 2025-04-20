@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import { deletePasskey, startRegister, updatePasskey, verifyRegistration } from '../controllers/passkeys.controller';
 
 const router = express.Router();

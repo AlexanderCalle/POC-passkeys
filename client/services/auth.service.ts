@@ -12,9 +12,10 @@ type UserDevice = {
 export const register = async (userInfo: {
   username: string;
   name?: string;
+  email: string;
   deviceName: string;
 }) => {
-  const { username, name, deviceName } = userInfo;
+  const { username, name, email, deviceName } = userInfo;
   try {
     const startResponse = await fetch('http://localhost:3001/api/auth/register/start', {
       method: 'POST',
@@ -49,7 +50,7 @@ export const register = async (userInfo: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify({username, name, deviceName, data: fidoData})
+      body: JSON.stringify({username, name, email, deviceName, data: fidoData})
     }).then(async (res) => {
       if (!res.ok) {
         const errorData = await res.json();
@@ -81,7 +82,15 @@ export const login = async (username: string) => {
     },
     credentials: 'include', 
     body: JSON.stringify({ username: username })
-  }).then(res => res.json())
+  }).then(res => {
+    if (!res.ok) {
+      if(res.status === 404) {
+        throw new Error('User not found');
+      }
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    return res.json();
+  })
 
   const optionsJSON = response;     
   try {
@@ -176,6 +185,61 @@ export const createNewDevice = async (userInfo: {
       throw new Error(error.message);
     }
     throw new Error('Registration failed');
+  }
+}
+
+export const recoverEmail = async (email: string) => {
+  try {
+    const response = await fetch('http://localhost:3001/api/auth/recover', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ email })
+    });
+
+    console.log("response", response);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return "OTP sent to email";
+  } catch (error) {
+    console.error('Recover error:', error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Recover failed');
+  }
+}
+
+export const verifyOTP = async (email: string, otp: string) => {
+  try {
+    const response = await fetch('http://localhost:3001/api/auth/recover/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ email, otp })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log(otp, email);
+      console.log("response", response);
+      console.log("response", errorData);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return "OTP verified";
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Verify OTP failed');
   }
 }
 
