@@ -5,16 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCurrentUser } from '@/hooks/use-user'
 import { getSession } from '@/lib/session'
 import { User } from '@/types/user'
-import { MoreVertical, Plus } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
+import PasskeyDetail from './passkey_detail'
+import { createNewDevice } from '@/services/auth.service'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Plus } from 'lucide-react'
 
 const ProfilePage = () => {
 
   const user = useCurrentUser();
   const [userData, setUserData] = useState<User | undefined>(undefined);
+  const [error, setError] = useState('')
 
   useEffect(() => {
     (async () => {
+      if(!user) return;
       const session = await getSession()
       const data = await fetch('http://localhost:3001/api/users/me/' + user?.id, {
         method: "GET",
@@ -25,11 +32,30 @@ const ProfilePage = () => {
         credentials: "include",
       });
       const userData = await data.json();
-      console.log(userData);
+      
       setUserData(userData);
     })()
-
   }, [user])
+
+  const [deviceName, setDeviceName] = useState('')  
+
+  const handleAddDevice = async () => {
+    try{
+      await createNewDevice({
+        username: user?.username || '',
+        deviceName: deviceName,
+      }).then((response) => {
+        if(response) {
+          window.location.reload();
+        } else {
+          setError('Creation failed')
+        }
+      })
+    } catch (error) {
+      setError(error.message)
+      console.error('Registration failed', error);
+    }
+  }
 
 
   if(!user) return null;
@@ -56,23 +82,35 @@ const ProfilePage = () => {
       <Card className='max-w-xl w-full mt-8'>
         <CardHeader className="flex justify-between items-center">
           <CardTitle>Devices ({userData?.PassKey?.length})</CardTitle>
-          <Button variant="outline"><Plus /></Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline"><Plus /></Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add Device</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <span className="text-sm text-destructive">{error}</span>
+                <Label htmlFor="name" className="text-right">
+                  Device name
+                </Label>
+                <Input
+                  id="name"
+                  value={deviceName}
+                  onChange={(e) => setDeviceName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <DialogFooter>
+                <Button onClick={handleAddDevice}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent className="grid gap-6">
           {userData?.PassKey?.map((device) => (
-            <div className="flex gap-1 justify-between items-center" key={device.id}>
-              <div className="text-lg">{device.name}</div>
-              <div className='flex gap-1 items-center'>
-                <div>
-                  {device.back_up ? (
-                    <span className="text-green-500">Backup</span>
-                  ) : (
-                    <span className="text-red-500">Not Backup</span>
-                  )}
-                </div>
-                <Button variant="ghost"><MoreVertical /></Button>
-              </div>
-            </div>
+            <PasskeyDetail passkey={device} key={device.id} />
           ))}
         </CardContent>
       </Card>

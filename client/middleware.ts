@@ -36,6 +36,8 @@ export async function middleware(request: NextRequest) {
       credentials: "include",
     });
 
+    console.log("verifyResponse", verifyResponse);
+
      // Redirect authenticated users away from public paths
      if (verifyResponse.ok && PUBLIC_PATHS.includes(path)) {
       return NextResponse.redirect(new URL("/dashboard", request.url));

@@ -1,4 +1,4 @@
-import { deleteSession, setSession } from "@/lib/session";
+import { deleteSession, getSession, setSession } from "@/lib/session";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 
 type UserDevice = { 
@@ -11,7 +11,7 @@ type UserDevice = {
 
 export const register = async (userInfo: {
   username: string;
-  name: string;
+  name?: string;
   deviceName: string;
 }) => {
   const { username, name, deviceName } = userInfo;
@@ -35,7 +35,7 @@ export const register = async (userInfo: {
       publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred: UserDevice) => {
         return {
           ...cred,
-          id: new Uint8Array(Buffer.from(cred.id, 'base64'))
+          id: cred.id
         };
       });
     }
@@ -59,7 +59,6 @@ export const register = async (userInfo: {
     });
 
     if (response.verified) {
-
       setSession(response.token, new Date(Date.now() + 3600000));
       return true;
     } else {
@@ -114,6 +113,69 @@ export const login = async (username: string) => {
   } catch (error) {
     console.error('Authentication failed', error);
     throw new Error('Authentication failed');
+  }
+}
+
+export const createNewDevice = async (userInfo: {
+  username: string;
+  deviceName: string;
+}) => {
+  const { username, deviceName } = userInfo;
+  try {
+    const session = await getSession();
+    const startResponse = await fetch('http://localhost:3001/api/passkeys/new', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.value}`,
+      },
+      credentials: 'include',
+      body: JSON.stringify({ username })
+    });
+
+    if (!startResponse.ok) {
+      throw new Error(`HTTP error! status: ${startResponse.status}`);
+    }
+
+    const publicKey = await startResponse.json();
+    if(publicKey.excludeCredentials) {
+      publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred: UserDevice) => {
+        return {
+          ...cred,
+          id: cred.id
+        };
+      });
+    }
+
+    const fidoData = await startRegistration(publicKey);
+    // Complete registration
+    const response = await fetch('http://localhost:3001/api/passkeys/new/finish', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.value}`,
+      },
+      credentials: 'include',
+      body: JSON.stringify({username, name, deviceName, data: fidoData})
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    });
+
+    if (response.verified) {
+      return true;
+    } else {
+      throw new Error("Registration failed");
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Registration failed');
   }
 }
 

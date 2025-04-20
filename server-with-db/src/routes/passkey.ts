@@ -1,0 +1,13 @@
+import express from 'express';
+import { authMiddleware } from '../middleware/authMiddleware';
+import { deletePasskey, startRegister, updatePasskey, verifyRegistration } from '../controllers/passkeys.controller';
+
+const router = express.Router();
+
+router.put('/:id', authMiddleware, updatePasskey);
+router.delete('/:id', authMiddleware, deletePasskey);
+
+router.post('/new', authMiddleware, startRegister);
+router.post('/new/finish', authMiddleware, verifyRegistration);
+
+export default router;

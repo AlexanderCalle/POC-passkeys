@@ -5,7 +5,7 @@ import { createUser, getUser, updateUser } from '../services/user.service';
 import { createPasskey, getUserPaskeys } from '../services/passkey.service';
 import jwt from 'jsonwebtoken';
 
-const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
+export const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
 type UserDevices = Array<{ 
   credentialID: string;
   credentialPublicKey: string;
@@ -39,10 +39,6 @@ export const registrationStart = async (req: Request, res: Response, next: NextF
     };
 
     const options = await generateRegistrationOptions(pubKey);
-    
-    // Store the challenge as a base64url string
-    const challengeBuffer = Buffer.from(options.challenge);
-    const challengeBase64 = challengeBuffer.toString('base64url');
     
     req.session.currentChallenge = options.challenge;
     req.session.webAuthnUserID = options.user.id;
@@ -94,16 +90,9 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
     const {verified, registrationInfo} = verification;
     let token: string = '';
     if (verified && registrationInfo) {
-      let user = await getUser(username);
-      if (!user) {
-        user = await createUser(username, name);
-      }
-
+      const user = await createUser(username, name);
       const { credential } = registrationInfo;
-      
       const publicKeyToStore = contextBuffer(credential.publicKey);
-
-      await updateUser(user.id, user);
 
       const webAuthnUserID = req.session.webAuthnUserID;
       await createPasskey({
@@ -216,7 +205,7 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
   }
 }
 
-const generateToken = async (user: any) => {
+export const generateToken = async (user: any) => {
   return await jwt.sign({ id: user.id, username: user.username }, config.jwtSecret, {
     expiresIn: 3600,
   });

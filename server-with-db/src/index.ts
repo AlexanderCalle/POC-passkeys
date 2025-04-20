@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
+import passKeyRoutes from './routes/passkey';
 import { errorHandler } from './middlewares/errorHandler';
 import config from './config/config';
 
@@ -68,6 +69,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes);
+app.use('/api/passkeys', passKeyRoutes);
 app.use(errorHandler);
 
 app.listen(config.port, () => {

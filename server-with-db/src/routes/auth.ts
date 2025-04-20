@@ -14,7 +14,9 @@ router.post('/login/finish', verifyAuthentication);
 
 router.get('/verify', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
+  console.log('token', token);
   if (!token) {
+    console.error('No token provided');
     res.status(401).send({ error: 'Unauthorized' });
     return;
   }
@@ -24,11 +26,13 @@ router.get('/verify', async (req, res) => {
       where: { id: decoded.id },
     });
     if (!user) {
+      console.error('User not found');
       res.status(401).send({ error: 'Unauthorized' });
       return;
     }
     res.send({ user });
   } catch (error) {
+    console.error(error);
     res.status(401).send({ error: 'Unauthorized' });
   }
 });
