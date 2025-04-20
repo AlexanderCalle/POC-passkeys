@@ -106,7 +106,7 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
         device_type: registrationInfo.credentialDeviceType,
         back_up: registrationInfo.credentialBackedUp,
       })
-      
+
       token = await generateToken({ id: user.id, name: user.name });
     }
     req.session.currentChallenge = undefined;
@@ -140,11 +140,29 @@ export const updatePasskey = async (req: Request, res: Response, next: NextFunct
 export const deletePasskey = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const passkey = await prismaClient.passKey.findFirst({
+      where: {
+        id: Number(id),
+      },
+    });
+
+    const passkeys = await prismaClient.passKey.findMany({
+      where: {
+        user_id: passkey?.user_id,
+      },
+    });
+
+    if (passkeys.length === 1) {
+      res.status(400).send({ error: 'Cannot delete last passkey' });
+      return;
+    }
+
     await prismaClient.passKey.delete({
       where: {
         id: Number(id),
       },
-    })
+    });
+    
     res.status(200).send(true);
   } catch (error) {
     next(error);

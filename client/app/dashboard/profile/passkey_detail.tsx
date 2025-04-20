@@ -13,6 +13,8 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
   const [editing, setEditing] = React.useState(false)
   const [name, setName] = React.useState(passkey.name)
 
+  const [error, setError] = React.useState('')
+
   const handleDelete = async () => {
     const session = await getSession()
     fetch('http://localhost:3001/api/passkeys/' + passkey.id, {
@@ -24,6 +26,13 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
     }).then((res) => {
       if(res.ok) {
         window.location.reload();
+      } else {
+        if(res.status === 400) {
+          setError('Cannot delete last passkey')
+        } else {
+          setError('Delete failed')
+          console.error('Delete failed', res.status);
+        }
       }
     })
   }
@@ -101,9 +110,10 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                      <DialogTitle>Add Device</DialogTitle>
+                      <DialogTitle>Delete device</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col gap-4 py-4">
+                      <span className="text-sm text-destructive">{error}</span>
                       <p>Are you sure you want to delete {passkey.name}?</p>
                     </div>
                     <DialogFooter>
