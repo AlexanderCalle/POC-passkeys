@@ -1,10 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "../client";
-import { getUser } from "../services/user.service";
+import { getUser, getUserByEmail } from "../services/user.service";
 import { createPasskey, getUserPaskeys } from "../services/passkey.service";
 import { generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyRegistrationResponse } from "@simplewebauthn/server";
 import config from "../config/config";
-import { contextBuffer, generateToken } from "./auth.controller";
+import { generateToken } from "./auth.controller";
+import { contextBuffer, generateRegistration, verifyRegistrationOptions } from "../lib/webauthn";
+import { redis } from "../lib/redis";
+import { verifyHash } from "../lib/hash";
 
 export const startRegister = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -15,27 +18,8 @@ export const startRegister = async (req: Request, res: Response, next: NextFunct
       res.status(404).send(false);
       return;
     }
-    const passkeys = await getUserPaskeys(user);
-
-    const pubKey: GenerateRegistrationOptionsOpts = {
-      rpName: config.relyingPartyName,
-      rpID: config.replyingPartyId,
-      userName: username,
-      timeout: 60000,
-      attestationType: 'none',
-      excludeCredentials: passkeys?.map((passkey) => ({
-        id: passkey.passkey_id,
-        type: 'public-key',
-        transports: [passkey.device_type] as AuthenticatorTransport[],
-      })),
-      authenticatorSelection: {
-        residentKey: 'required',
-        userVerification: 'preferred',
-      },
-      supportedAlgorithmIDs: [-7, -257],
-    };
-
-    const options = await generateRegistrationOptions(pubKey);
+    
+    const options = await generateRegistration(user);
     
     req.session.currentChallenge = options.challenge;
     req.session.webAuthnUserID = options.user.id;
@@ -68,47 +52,85 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
       });
       return;
     }
-    // Verification
-    let verification;
-    try {
-      verification = await verifyRegistrationResponse({
-        response: data,
-        expectedChallenge: req.session.currentChallenge,
-        expectedOrigin: config.origin,
+
+    const { verified, token } = await verifyRegistrationOptions({
+      username,
+      deviceName,
+      currentChallenge: req.session.currentChallenge,
+      response: data,
+      webAuthnUserID: req.session.webAuthnUserID ?? '',
+    }, async () => {
+      return user;
+    });
+
+    req.session.currentChallenge = undefined;
+    req.session.webAuthnUserID = undefined;
+
+    res.status(200).send({ verified, token });
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const recoverStart = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, hash } = req.body;
+    if (!email || !hash) {
+      res.status(400).send({ error: 'Email and hash are required' });
+      return;
+    }
+
+    const storedHash = await redis.get(email);
+    if (!storedHash) {
+      res.status(400).send({ error: 'OTP expired or invalid' });
+      return;
+    }
+    if(!verifyHash(hash, storedHash.toString())) {
+      res.status(400).send({ error: 'OTP expired or invalid' });
+      return;
+    }
+
+    await redis.del(email);
+    const user = await getUserByEmail(email);
+    if (!user) {
+      res.status(404).send({ error: 'User not found' });
+      return;
+    }
+    req.body.username = user.username;
+    await startRegister(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const recoverVerify = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, deviceName, data } = req.body;   
+    const user = await getUserByEmail(email);
+    if (!user) {
+      res.status(404).send({ error: 'User not found' });
+      return;
+    }
+
+    if (!req.session.currentChallenge) {
+      res.status(400).json({ 
+        error: 'Challenge not found',
+        sessionId: req.session.id,
+        sessionData: req.session
       });
-    } catch (error) {
-      if(error instanceof Error) {
-        res.status(400).send({error: error.message});
-        return;
-      }
-      res.status(500).send(false);
-      return;
-    }
-    if(!verification) {
-      res.status(500).send(false);
       return;
     }
 
-    const { verified, registrationInfo } = verification;
-    let token: string = '';
-    if (verified && registrationInfo) {
-      const { credential } = registrationInfo;
-      const publicKeyToStore = contextBuffer(credential.publicKey);
+    const { verified, token } = await verifyRegistrationOptions({
+      username: user.username,
+      deviceName,
+      currentChallenge: req.session.currentChallenge,
+      response: data,
+      webAuthnUserID: req.session.webAuthnUserID ?? '',
+    }, async () => {
+      return user;
+    });
 
-      const webAuthnUserID = req.session.webAuthnUserID;
-      await createPasskey({
-        passkey_id: credential.id,
-        public_key: publicKeyToStore,
-        name: deviceName,
-        user_id: user.id,
-        webauthnUser_id: webAuthnUserID || '',
-        counter: BigInt(credential.counter),
-        device_type: registrationInfo.credentialDeviceType,
-        back_up: registrationInfo.credentialBackedUp,
-      })
-
-      token = await generateToken({ id: user.id, name: user.name });
-    }
     req.session.currentChallenge = undefined;
     req.session.webAuthnUserID = undefined;
 

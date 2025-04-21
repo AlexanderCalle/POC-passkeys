@@ -111,9 +111,7 @@ export const login = async (username: string) => {
       body: JSON.stringify({assertion, username})
     }).then(res => res.json());
     
-    console.log('loginResponse', loginResponse);
     if (loginResponse.verified === true) {
-      console.log('token', loginResponse.token);
       setSession(loginResponse.token, new Date(Date.now() + 3600000));
       return;
     } else {
@@ -199,8 +197,6 @@ export const recoverEmail = async (email: string) => {
       body: JSON.stringify({ email })
     });
 
-    console.log("response", response);
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -228,18 +224,77 @@ export const verifyOTP = async (email: string, otp: string) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.log(otp, email);
-      console.log("response", response);
-      console.log("response", errorData);
+      if(errorData.error) {
+        throw new Error(errorData.error);
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return "OTP verified";
+    const data = await response.json();
+    return data.hash;
   } catch (error) {
     console.error('Verify OTP error:', error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
     throw new Error('Verify OTP failed');
+  }
+}
+
+export const recoverPasskey = async (email: string, hash: string, deviceName: string) => {
+  try {
+
+    const startResponse = await fetch('http://localhost:3001/api/passkeys/recover/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ email, hash })
+    });
+
+    if (!startResponse.ok) {
+      throw new Error(`HTTP error! status: ${startResponse.status}`);
+    }
+
+    const publicKey = await startResponse.json();
+    if(publicKey.excludeCredentials) {
+      publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred: UserDevice) => {
+        return {
+          ...cred,
+          id: cred.id
+        };
+      });
+    }
+
+    const fidoData = await startRegistration(publicKey);
+    // Complete registration
+    const response = await fetch('http://localhost:3001/api/passkeys/recover/finish', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({email, deviceName, data: fidoData})
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    });
+
+    if (response.verified) {
+      return true;
+    } else {
+      throw new Error("Registration failed");
+    }
+
+  } catch (error) {
+    console.error('Recover passkey error:', error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Recover passkey failed');
   }
 }
 

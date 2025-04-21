@@ -9,6 +9,7 @@ interface Config {
   relyingPartyName: string;
   origin: string;
   jwtSecret: string;
+  hashSecret: string;
   redis: {
     url: string;
     token: string;
@@ -28,6 +29,7 @@ const config: Config = {
   replyingPartyId: process.env.REPLYING_PARTY_ID || 'localhost',
   relyingPartyName: process.env.REPLYING_PARTY_NAME || 'webauthn-app',
   origin: process.env.ORIGIN || 'http://localhost:3000',
+  hashSecret: process.env.HASH_SECRET || 'secret',
   jwtSecret: process.env.JWT_SECRET || 'secret',
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',

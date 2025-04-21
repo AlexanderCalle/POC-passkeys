@@ -42,7 +42,7 @@ export default function VerifyOTPPage() {
       }
       // TODO: Replace this with your actual verification logic
       // This would be replaced with your actual API call
-      await verifyOTP(searchParams.get("email")!, values.otp)
+      const hash = await verifyOTP(searchParams.get("email")!, values.otp)
 
       // Simulate successful verification
       toast.info("Account recovered successfully",
@@ -51,11 +51,7 @@ export default function VerifyOTPPage() {
         },
       )
 
-      // TODO: redirect to passkey registration
-      // // Redirect to password reset page
-      // setTimeout(() => {
-      //   router.push("/reset-password")
-      // }, 1500)
+      router.push(`/recover/passkey?email=${email}&hash=${hash}`)
     } catch(error) {
       if(error instanceof Error) {
         toast.error("Verification failed", {

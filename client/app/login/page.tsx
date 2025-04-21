@@ -52,6 +52,7 @@ export default function Home() {
           Signin with passkey
         </Button>
         <Link href="/register" className="text-blue-500 hover:underline">No account yet? Create an account.</Link>
+        <Link href="/recover" className="text-blue-500 hover:underline">Lost your passkey?</Link>
         <span className="text-red-500">{error}</span>
       </form>
     </div>

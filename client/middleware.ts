@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { getSession } from "./lib/session";
 
 // Define public paths that don't require authentication
-const PUBLIC_PATHS = ['/login', '/register', '/recover', '/recover/verify'];
+const PUBLIC_PATHS = ['/login', '/register', '/recover', '/recover/verify', '/recover/passkey'];
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();

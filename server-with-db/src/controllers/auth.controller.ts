@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import config from '../config/config';
 import { AuthenticationResponseJSON, generateAuthenticationOptions, GenerateAuthenticationOptionsOpts, generateRegistrationOptions, GenerateRegistrationOptionsOpts, verifyAuthenticationResponse, verifyRegistrationResponse, WebAuthnCredential } from '@simplewebauthn/server';
 import crypto from 'crypto';
-import { createUser, getUser } from '../services/user.service';
+import { createUser, getUser, getUserByEmail } from '../services/user.service';
 import { createPasskey, getUserPaskeys } from '../services/passkey.service';
 import jwt from 'jsonwebtoken';
 import { redis } from '../lib/redis';
 import { transporter } from '../lib/nodemailer';
+import { contextBuffer, verifyRegistrationOptions } from '../lib/webauthn';
+import { hashFromOtp } from '../lib/hash';
 
-export const contextBuffer = (buffer: Uint8Array) => Buffer.from(buffer);
 type UserDevices = Array<{ 
   credentialID: string;
   credentialPublicKey: string;
@@ -69,48 +70,17 @@ export const verifyRegistration = async (req: Request, res: Response, next: Next
       });
       return;
     }
-    // Verification
-    let verification;
-    try {
-      verification = await verifyRegistrationResponse({
-        response: data,
-        expectedChallenge: req.session.currentChallenge,
-        expectedOrigin: config.origin,
-      });
-    } catch (error) {
-      if(error instanceof Error) {
-        res.status(400).send({error: error.message});
-        return;
-      }
-      res.status(500).send(false);
-      return;
-    }
-    if(!verification) {
-      res.status(500).send(false);
-      return;
-    }
 
-    const {verified, registrationInfo} = verification;
-    let token: string = '';
-    if (verified && registrationInfo) {
-      const user = await createUser(username, email, name);
-      const { credential } = registrationInfo;
-      const publicKeyToStore = contextBuffer(credential.publicKey);
-
-      const webAuthnUserID = req.session.webAuthnUserID;
-      await createPasskey({
-        passkey_id: credential.id,
-        public_key: publicKeyToStore,
-        name: deviceName,
-        user_id: user.id,
-        webauthnUser_id: webAuthnUserID || '',
-        counter: BigInt(credential.counter),
-        device_type: registrationInfo.credentialDeviceType,
-        back_up: registrationInfo.credentialBackedUp,
-      })
-      res.cookie('user', JSON.stringify({ id: user.id, name: user.name }), { maxAge: 3600000 });
-      token = await generateToken({ id: user.id, name: user.name });
-    }
+    const { verified, token } = await verifyRegistrationOptions({
+      username,
+      deviceName,
+      currentChallenge: req.session.currentChallenge,
+      response: data,
+      webAuthnUserID: req.session.webAuthnUserID ?? '',
+    }, async () => {
+      return await createUser(username, email, name);
+    });
+   
     req.session.currentChallenge = undefined;
     req.session.webAuthnUserID = undefined;
 
@@ -210,7 +180,6 @@ export const verifyAuthentication = async (req: Request, res: Response, next: Ne
 
 export const sendOTP = async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.body;
-  console.log("Send email")
   if (!email) {
     res.status(400).send({ error: 'Email is required' });
     return;
@@ -243,7 +212,6 @@ export const verifyOTP = async (req: Request, res: Response, next: NextFunction)
 
   try {
     const storedOTP = await redis.get(email);
-    console.log("storedOTP", storedOTP);
     if (!storedOTP) {
       res.status(400).send({ error: 'OTP expired or invalid' });
       return;
@@ -252,9 +220,11 @@ export const verifyOTP = async (req: Request, res: Response, next: NextFunction)
     if (storedOTP.toString() !== otp) {
       res.status(400).send({ message: 'Invalid' });
     }
-
+    
     await redis.del(email);
-    res.status(200).send({ message: 'Valid' });
+    const hash = hashFromOtp(otp);
+    await redis.setex(email, 600, hash);
+    res.status(200).send({ message: 'Valid', hash });
   } catch (error) {
     next(error);
   }
