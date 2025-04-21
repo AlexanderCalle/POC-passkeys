@@ -12,6 +12,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Stepper } from '@/components/stepper';
 import { useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import PasskeyInfoPage from './passkey_info';
 
 const schema = z.object({
   username: z.string().min(1, { message: 'Username is required' }),
@@ -39,21 +40,24 @@ const RegistrationPage = () => {
     try {
       await register(value);
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Registration failed', error);
-      form.setError("root", { message: 'Registration failed' });
+    } catch {
+      form.setError("root", { message: 'Registration failed, please try again.' });
     }
   };
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <Stepper
         items={[
-          { title: 'Information', active: currentStep >= 0 },
-          { title: 'Passkey setup', active: currentStep >= 1 },
+          { title: 'Passkey information', active: currentStep >= 0 },
+          { title: 'Account information', active: currentStep >= 1 },
+          { title: 'Passkey setup', active: currentStep >= 2 },
         ]}
       />
       <Form {...form}>
         {currentStep === 0 && (
+          <PasskeyInfoPage onNext={() => setCurrentStep((prev) => prev + 1)} />
+        )}
+        {currentStep === 1 && (
           <form className="flex flex-col gap-4" onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -111,12 +115,19 @@ const RegistrationPage = () => {
                 </FormItem>
               )}
             />
+            <Button type="button" variant="secondary" onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setCurrentStep((prev) => prev - 1);
+            }}>
+              Back
+            </Button>
             <Button type="submit">
               Next
             </Button>
           </form>
         )}
-        {currentStep === 1 && (
+        {currentStep === 2 && (
           <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
             <FormMessage />
             <FormField

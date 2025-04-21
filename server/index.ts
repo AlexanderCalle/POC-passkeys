@@ -47,8 +47,6 @@ app.post('/register/start', async (req, res) => {
 
 app.post('/register/finish', (async (req: Request, res: Response) => {
   const { username, data: response } = req.body;
-
-  console.log("finish - register"); 
   // Verification
   let verification;
   try {
