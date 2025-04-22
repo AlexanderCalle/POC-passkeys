@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { register } from '@/services/auth.service';
-import { Key } from 'lucide-react';
+import { Key, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,6 +13,7 @@ import { Stepper } from '@/components/stepper';
 import { useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import PasskeyInfoPage from './passkey_info';
+import { toast } from 'sonner';
 
 const schema = z.object({
   username: z.string().min(1, { message: 'Username is required' }),
@@ -35,17 +36,24 @@ const RegistrationPage = () => {
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSubmit = async (value: z.infer<typeof schema>) => {
     try {
+      setIsSubmitting(true);
       await register(value);
+      toast.success("Registration successful"); 
       router.push('/dashboard');
     } catch {
       form.setError("root", { message: 'Registration failed, please try again.' });
     }
+    finally {
+      setIsSubmitting(false);
+    }
   };
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+    <div className="grid grid-rows-[20px_20px_1fr] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <h1 className="text-2xl font-bold text-center">Medi Dashboard - Register</h1>
       <Stepper
         items={[
           { title: 'Passkey information', active: currentStep >= 0 },
@@ -189,9 +197,18 @@ const RegistrationPage = () => {
             }}>
               Back
             </Button>
-            <Button type="submit">
-              <Key />
-              Register a passkey
+            <Button type="submit" disabled={isSubmitting}>
+             {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Registering...
+                </>
+              ) : (
+                <>
+                  <Key />
+                  Register a passkey
+                </>
+              )}
             </Button>
           </form>
         )}

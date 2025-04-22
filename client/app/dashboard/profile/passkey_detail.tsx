@@ -82,13 +82,6 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
         <>
           <div className="text-lg">{passkey.name}</div>
           <div className='flex gap-1 items-center'>
-            <div>
-              {passkey.back_up ? (
-                <span className="text-green-500">Backup</span>
-              ) : (
-                <span className="text-red-500">Not Backup</span>
-              )}
-            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">

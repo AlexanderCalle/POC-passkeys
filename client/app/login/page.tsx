@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Key } from "lucide-react";
+import { Key, Loader2 } from "lucide-react";
 import { login } from "@/services/auth.service";
 import "../globals.css";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -28,11 +29,14 @@ export default function Home() {
   });
   
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsSubmitting(true);
       await login(values.username);
+      toast.success("Login successful"); 
       router.push('/dashboard');
     } catch (error) {
       if(error instanceof Error) {
@@ -40,6 +44,8 @@ export default function Home() {
         return;
       }
       setError('Login failed, please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -70,9 +76,18 @@ export default function Home() {
                 </FormItem>
               )}
             />
-            <Button type="submit" variant="default">
-              <Key />
-              Signin with passkey
+            <Button type="submit" variant="default" disabled={isSubmitting}>
+             {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <Key />
+                Sign in
+              </>
+            )}
             </Button>
             <p>No account yet? <Link href="/register" className="text-blue-500 hover:underline">Create an account.</Link></p>
             <Link href="/recover" className="text-blue-500 hover:underline">Lost your passkey?</Link>
