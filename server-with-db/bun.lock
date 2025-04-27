@@ -9,6 +9,7 @@
         "@simplewebauthn/server": "^13.1.1",
         "@upstash/redis": "^1.34.8",
         "body-parser": "^2.2.0",
+        "connect-redis": "^8.0.3",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dotenv": "^16.4.7",
@@ -142,6 +143,8 @@
     "cluster-key-slot": ["cluster-key-slot@1.1.2", "", {}, "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="],
 
     "concat-map": ["concat-map@0.0.1", "", {}, "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg=="],
+
+    "connect-redis": ["connect-redis@8.0.3", "", { "peerDependencies": { "express-session": ">=1" } }, "sha512-wLIaRv5csDWZsODD/X1vzfF9YKAYVfjJfzxsR6er0jqikM+i4GuBv06kgB8/O3QJWj5ANhYRoym/j1rL459v7g=="],
 
     "content-disposition": ["content-disposition@1.0.0", "", { "dependencies": { "safe-buffer": "5.2.1" } }, "sha512-Au9nRL8VNUut/XSzbQA38+M78dzP4D+eqg3gfJHMIHHYa3bg067xj1KxMUWj+VULbiZMowKngFFbKczUrNJ1mg=="],
 

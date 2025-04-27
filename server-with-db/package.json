@@ -6,7 +6,6 @@
     "start": "bun run src/index.ts",
     "dev": "nodemon --watch src --exec bun run src/index.ts",
     "build": "bun build"
-    
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
@@ -29,6 +28,7 @@
     "@simplewebauthn/server": "^13.1.1",
     "@upstash/redis": "^1.34.8",
     "body-parser": "^2.2.0",
+    "connect-redis": "^8.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

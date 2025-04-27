@@ -13,6 +13,7 @@ interface Config {
   redis: {
     url: string;
     token: string;
+    protocol: string;
   };
   mail: {
     user: string;
@@ -34,6 +35,7 @@ const config: Config = {
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
     token: process.env.REDIS_TOKEN || 'token',
+    protocol: process.env.REDIS_PROTOCOL || 'redis',
   },
   mail: {
     user: process.env.EMAIL_USER || 'user',

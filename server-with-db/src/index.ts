@@ -7,6 +7,9 @@ import userRoutes from './routes/user';
 import passKeyRoutes from './routes/passkey';
 import { errorHandler } from './middlewares/errorHandler';
 import config from './config/config';
+import connectRedis, { RedisStore } from 'connect-redis';
+import { redis } from './lib/redis';
+import { createClient } from 'redis';
 
 const app = express();
 
@@ -31,15 +34,20 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.set('trust proxy', 1); // trust first proxy
 
+
+import Redis from "ioredis"
+
+const client = new Redis(config.redis.protocol);
 // Session configuration
 const sessionConfig = {
 	secret: config.session.secret,
 	name: 'webauthn.sid',
 	resave: false,
+	store: new RedisStore({ client }),
 	saveUninitialized: false,
 	rolling: true,
 	cookie: {
-		secure: false, // set to true if using HTTPS
+		secure: process.env.NODE_ENV === 'production', // set to true if using HTTPS
 		httpOnly: true,
 		sameSite: 'lax' as const,
 		maxAge: 24 * 60 * 60 * 1000, // 24 hours
