@@ -49,7 +49,6 @@ const sessionConfig = {
 	cookie: {
 		secure: process.env.NODE_ENV === 'production', // set to true if using HTTPS
 		httpOnly: true,
-		sameSite: 'lax' as const,
 		maxAge: 24 * 60 * 60 * 1000, // 24 hours
 		path: '/',
 	}
