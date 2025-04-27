@@ -19,7 +19,7 @@ declare module 'express-session' {
 
 // Strict CORS configuration
 const corsOptions = {
-	origin: 'http://localhost:3000',
+	origin: config.origin,
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
