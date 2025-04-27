@@ -47,69 +47,69 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
+      title: "Patients",
+      url: "#",
+      icon: IconUsers,
+    },
+    {
+      title: "Appointments",
       url: "#",
       icon: IconListDetails,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
+      title: "Medical Records",
       url: "#",
       icon: IconFolder,
     },
     {
-      title: "Team",
+      title: "Lab Results",
       url: "#",
-      icon: IconUsers,
+      icon: IconChartBar,
     },
   ],
   navClouds: [
     {
-      title: "Capture",
+      title: "Imaging",
       icon: IconCamera,
       isActive: true,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "Recent Scans",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "Archive",
           url: "#",
         },
       ],
     },
     {
-      title: "Proposal",
+      title: "Prescriptions",
       icon: IconFileDescription,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "Active Medications",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "History",
           url: "#",
         },
       ],
     },
     {
-      title: "Prompts",
+      title: "AI Assistance",
       icon: IconFileAi,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "Diagnosis Support",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "Treatment Plans",
           url: "#",
         },
       ],
@@ -122,7 +122,7 @@ const data = {
       icon: IconSettings,
     },
     {
-      title: "Get Help",
+      title: "Support",
       url: "#",
       icon: IconHelp,
     },
@@ -134,17 +134,17 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
+      name: "Clinical Guidelines",
       url: "#",
       icon: IconDatabase,
     },
     {
-      name: "Reports",
+      name: "Medical Reports",
       url: "#",
       icon: IconReport,
     },
     {
-      name: "Word Assistant",
+      name: "Documentation",
       url: "#",
       icon: IconFileWord,
     },

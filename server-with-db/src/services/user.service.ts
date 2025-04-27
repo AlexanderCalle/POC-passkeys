@@ -20,6 +20,7 @@ export const getUserByEmail = async (email: string) => {
 };
 
 export const createUser = async (username: string, email: string, name?: string) => {
+  // TODO: add try catch for the unique constraints
   const user = await prisma.user.create({
     data: {
       username,

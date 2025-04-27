@@ -178,7 +178,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "type",
-    header: "Birthday",
+    header: "Type of Consultation",
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
@@ -203,7 +203,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "limit",
-    header: "Consultations",
+    header: "Consultation Time",
     cell: ({ row }) => (
       <form
         onSubmit={(e) => {
@@ -219,7 +219,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           Limit
         </Label>
         <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
+          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-20 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
           defaultValue={row.original.limit}
           id={`${row.original.id}-limit`}
         />
@@ -228,7 +228,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "reviewer",
-    header: "Doctor",
+    header: "Doctor Assigned",
     cell: ({ row }) => {
       const isAssigned = row.original.reviewer !== "Assign reviewer"
 
