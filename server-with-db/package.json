@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "nodemon --watch src --exec bun run src/index.ts"
+    "dev": "nodemon --watch src --exec bun run src/index.ts",
+    "build": "bun build"
+    
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",

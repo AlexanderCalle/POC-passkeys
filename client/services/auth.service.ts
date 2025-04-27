@@ -17,7 +17,7 @@ export const register = async (userInfo: {
 }) => {
   const { username, name, email, deviceName } = userInfo;
   try {
-    const startResponse = await fetch('http://localhost:3001/api/auth/register/start', {
+    const startResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/register/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ export const register = async (userInfo: {
     const fidoData = await startRegistration(publicKey);
 
     // Complete registration
-    const response = await fetch('http://localhost:3001/api/auth/register/finish', {
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL +  '/auth/register/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const register = async (userInfo: {
 }
 
 export const login = async (username: string) => {
-  const response = await fetch('http://localhost:3001/api/auth/login/start', {
+  const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/login/start', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -102,7 +102,7 @@ export const login = async (username: string) => {
     }
 
     const assertion = await startAuthentication(optionsJSON);
-    const loginResponse = await fetch('http://localhost:3001/api/auth/login/finish', {
+    const loginResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/login/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -130,7 +130,7 @@ export const createNewDevice = async (userInfo: {
   const { username, deviceName } = userInfo;
   try {
     const session = await getSession();
-    const startResponse = await fetch('http://localhost:3001/api/passkeys/new', {
+    const startResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/new', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ export const createNewDevice = async (userInfo: {
 
     const fidoData = await startRegistration(publicKey);
     // Complete registration
-    const response = await fetch('http://localhost:3001/api/passkeys/new/finish', {
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/new/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export const createNewDevice = async (userInfo: {
 
 export const recoverEmail = async (email: string) => {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/recover', {
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/recover', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ export const recoverEmail = async (email: string) => {
 
 export const verifyOTP = async (email: string, otp: string) => {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/recover/verify', {
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/recover/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -243,7 +243,7 @@ export const verifyOTP = async (email: string, otp: string) => {
 export const recoverPasskey = async (email: string, hash: string, deviceName: string) => {
   try {
 
-    const startResponse = await fetch('http://localhost:3001/api/passkeys/recover/start', {
+    const startResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/recover/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export const recoverPasskey = async (email: string, hash: string, deviceName: st
 
     const fidoData = await startRegistration(publicKey);
     // Complete registration
-    const response = await fetch('http://localhost:3001/api/passkeys/recover/finish', {
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/recover/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
