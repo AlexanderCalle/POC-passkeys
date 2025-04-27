@@ -8,7 +8,7 @@ import { recoverPasskey } from '@/services/auth.service'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { KeyRound } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React from 'react'
+import React, { Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -20,9 +20,17 @@ const formSchema = z.object({
 })
 
 
-const RecoverPasskeyPage = () => {
+export default function RecoverPasskeyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RecoverPasskeyContent />
+    </Suspense>
+  )
+}
+
+function RecoverPasskeyContent() {
   const router = useRouter()
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()
   const email = searchParams.get("email")
   const hash = searchParams.get("hash")
 
@@ -31,7 +39,7 @@ const RecoverPasskeyPage = () => {
     defaultValues: {
       device_name: "",
     },
-  });
+  })
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -98,5 +106,3 @@ const RecoverPasskeyPage = () => {
     </div>
   )
 }
-
-export default RecoverPasskeyPage
