@@ -7,9 +7,7 @@ import userRoutes from './routes/user';
 import passKeyRoutes from './routes/passkey';
 import { errorHandler } from './middlewares/errorHandler';
 import config from './config/config';
-import connectRedis, { RedisStore } from 'connect-redis';
-import { redis } from './lib/redis';
-import { createClient } from 'redis';
+import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 const app = express();
