@@ -17,7 +17,7 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
 
   const handleDelete = async () => {
     const session = await getSession()
-    fetch('http://localhost:3001/api/passkeys/' + passkey.id, {
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/' + passkey.id, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session?.value}`,
@@ -44,7 +44,7 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
   const handleEdit = async () => {
     try {
       const session = await getSession()
-      const response  = await fetch('http://localhost:3001/api/passkeys/' + passkey.id, {
+      const response  = await fetch(process.env.NEXT_PUBLIC_API_URL + '/passkeys/' + passkey.id, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
   }
 
   return (
-    <div className="flex gap-1 justify-between items-center" key={passkey.id}>
+    <div className="flex items-center justify-between gap-1" key={passkey.id}>
       {editing ? (
         <>
           <Input
@@ -81,7 +81,7 @@ const PasskeyDetail = ({ passkey } : {passkey: Passkey}) => {
       ) : (
         <>
           <div className="text-lg">{passkey.name}</div>
-          <div className='flex gap-1 items-center'>
+          <div className='flex items-center gap-1'>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
