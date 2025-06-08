@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
     }
 
     
-    const verifyResponse = await fetch("http://localhost:3001/api/auth/verify", {
+    const verifyResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + "/auth/verify", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
