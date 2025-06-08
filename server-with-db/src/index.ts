@@ -10,6 +10,7 @@ import config from './config/config';
 import connectRedis, { RedisStore } from 'connect-redis';
 import { redis } from './lib/redis';
 import { createClient } from 'redis';
+import Redis from 'ioredis';
 
 const app = express();
 
@@ -35,9 +36,9 @@ app.use(cors(corsOptions));
 app.set('trust proxy', 1); // trust first proxy
 
 
-import Redis from "ioredis"
-
-const client = new Redis(config.redis.protocol);
+const client = new Redis(config.redis.protocol, {
+	maxRetriesPerRequest: null,
+});
 // Session configuration
 const sessionConfig = {
 	secret: config.session.secret,

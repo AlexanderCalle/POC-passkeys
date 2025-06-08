@@ -1,175 +1,87 @@
-# Passkey Authentication User Experience Analysis Guide
+# Passkeys POC Project
 
-This guide provides a comprehensive framework for evaluating the user-friendliness of passkey authentication implementations. Use it alongside technical security analysis to ensure your passkey solution is both secure and usable.
+This project is a Proof of Concept (POC) demonstrating the use of Passkeys for authentication.
+It comprises a client-side application (built with Next.js/React) and a backend API (built with NestJS).
 
-## 1. Usability Heuristics Evaluation
+## Prerequisites
 
-Apply Nielsen's 10 usability heuristics specifically to the passkey flows:
+Before running this project, ensure you have the following installed:
 
-### Visibility of system status
-- Does the app clearly show users where they are in the authentication process?
-- Are there loading indicators during WebAuthn operations?
-- Is feedback provided after each step (success/failure)?
+*   Node.js (LTS version recommended)
+*   npm or yarn
+*   Git
 
-### Match between system and real world
-- Does the terminology around passkeys make sense to non-technical users?
-- Are metaphors and icons intuitive (e.g., key icons for passkeys)?
+## Getting Started
 
-### User control and freedom
-- Can users easily cancel authentication attempts?
-- Is there a way to recover from errors or mistakes?
+Follow these steps to get the project up and running on your local machine.
 
-### Consistency and standards
-- Does the passkey UI follow platform conventions (iOS/Android/Web)?
-- Is the authentication flow consistent with other authentication methods?
+### 1. Clone the Repository
 
-### Error prevention
-- Are there safeguards against common mistakes?
-- Is input validation clear and helpful?
+```bash
+git clone <repository-url>
+cd passkeys-poc
+```
 
-## 2. User Journey Mapping
+### 2. Environment Variables
 
-Create detailed user journey maps for key scenarios:
+Create a `.env` file in both the `client` and `server-with-db` directories based on the provided `.env.example` files
 
-### First-time user registration
-- Initial discovery of passkey option
-- Understanding what passkeys are
-- Setting up first passkey
-- Post-registration feedback
+### 3. Database Setup (Neon)
 
-### Returning user authentication
-- Recognition of passkey option
-- Selection of correct device/passkey
-- Handling of authentication errors
+This project uses PostgreSQL as its database, hosted on [Neon](https://neon.tech/).
 
-### Device management
-- Finding passkey management settings
-- Adding additional passkeys
-- Renaming/deleting passkeys
-- Understanding backup status
+1.  **Create a Neon Account:** If you don't have one, sign up at [Neon](https://neon.tech/).
+2.  **Create a New Project:** In your Neon dashboard, create a new project.
+3.  **Obtain Database Connection String:** Navigate to the "Connection Details" section of your project. Copy the PostgreSQL connection string. It will look something like `postgresql://[user]:[password]@[host]:[port]/[database]?sslmode=require`.
+4.  **Update `.env`:** Paste this connection string into your `server-with-db/.env` file as the `DATABASE_URL`.
 
-### Account recovery
-- Discovering recovery options
-- Email OTP process
-- Re-establishing passkeys
+#### Running Migrations
 
-## 3. Accessibility Analysis
+Navigate to the `server-with-db` directory and install dependencies, then run Prisma migrations to set up your database schema:
 
-Evaluate how accessible the passkey implementation is:
+```bash
+cd server-with-db
+npm install # or yarn install
+npx prisma migrate dev --name init # Or a more descriptive name if you have existing migrations
+```
 
-### Screen reader compatibility
-- Are all UI elements properly labeled?
-- Is the authentication flow navigable without visual cues?
+### 4. Redis DB Setup (Upstash)
 
-### Keyboard navigation
-- Can the entire process be completed without a mouse?
-- Are there appropriate keyboard shortcuts?
+This project uses Redis for caching/session management, hosted on [Upstash](https://upstash.com/).
 
-### Color contrast and visual design
-- Is text readable against backgrounds?
-- Are error states distinguishable for color-blind users?
+1.  **Create an Upstash Account:** If you don't have one, sign up at [Upstash](https://upstash.com/).
+2.  **Create a New Database:** In your Upstash console, create a new Redis database.
+3.  **Obtain Connection Details:** After creation, you will get a `REDIS_URL`, `REDIS_TOKEN` and `REDIS_PROTOCOL` looks like `redis://[name]:[pwd]@[url]:[port]`.
+4.  **Update `.env`:** Add these values to your `server-with-db/.env` file.
 
-### Cognitive load
-- Is the process simple enough for users with cognitive disabilities?
-- Are instructions clear and concise?
+### 5. Resend Setup
 
-## 4. Cross-device Experience
+This project uses [Resend](https://resend.com/) for sending emails.
 
-Analyze how the experience works across different contexts:
+1.  **Create a Resend Account:** If you don't have one, sign up at [Resend](https://resend.com/).
+2.  **Obtain API Key:** After creating your account and verifying your domain, generate an API Key from your Resend dashboard.
+3.  **Update `.env`:** Add this API Key to your `server-with-db/.env` file as `RESEND_API_KEY`.
 
-### Device transitions
-- How smooth is the experience when authenticating on a different device?
-- Is cross-device authentication clearly explained?
+### 6. Run the Backend
 
-### Platform differences
-- How consistent is the experience between mobile and desktop?
-- Are there platform-specific optimizations?
+Navigate to the `server-with-db` directory and start the NestJS backend:
 
-### Fallback mechanisms
-- What happens on devices without passkey support?
-- How gracefully does the system handle unsupported scenarios?
+```bash
+cd server-with-db
+npm run start:dev # or yarn start:dev
+```
 
-## 5. User Testing Methodology
+The backend should now be running, typically on `http://localhost:3001` (or the `PORT` you configured).
 
-Outline how you would conduct user testing:
+### 7. Run the Frontend
 
-### Task-based scenarios
-- Registration with a new passkey
-- Login with an existing passkey
-- Adding a second passkey
-- Recovering access after losing a device
+Navigate to the `client` directory and start the Next.js frontend:
 
-### Metrics to collect
-- Task completion rates
-- Time on task
-- Error rates
-- Subjective satisfaction (SUS score)
-- Confidence in security
+```bash
+cd client
+npm install # or yarn install
+npm run dev # or yarn dev
+```
 
-### Demographic considerations
-- Testing with both tech-savvy and non-technical users
-- Age range considerations
-- Users with and without prior passkey experience
+The frontend should now be running, typically on `http://localhost:3000`.
 
-## 6. Comparative Analysis
-
-Compare your implementation against other authentication methods:
-
-### vs. Password-based authentication
-- Ease of use comparison
-- Number of steps
-- Cognitive load
-
-### vs. Other passwordless methods
-- Magic links
-- SMS OTP
-- Authenticator apps
-
-### vs. Other passkey implementations
-- Google
-- Apple
-- Microsoft
-
-## 7. Friction Points Analysis
-
-Identify potential friction points in the current implementation:
-
-### Education burden
-- How much does the user need to understand about passkeys?
-- Is educational content available at the right moments?
-
-### Recovery anxiety
-- Do users feel confident they won't be locked out?
-- Is the recovery process clearly explained upfront?
-
-### Device management complexity
-- How intuitive is it to manage multiple passkeys?
-- Is the backup status clearly communicated?
-
-## Getting Started with Evaluation
-
-1. Begin by conducting a heuristic evaluation using the criteria in section 1
-2. Map out the user journeys for your specific implementation
-3. Conduct accessibility testing with appropriate tools
-4. Test cross-device scenarios with actual devices
-5. Plan and execute user testing with diverse participants
-6. Compare your solution against alternatives
-7. Identify and prioritize friction points for improvement
-
-## Best Practices for Passkey UX
-
-- Provide clear, concise explanations of what passkeys are
-- Use progressive disclosure to avoid overwhelming users
-- Ensure recovery mechanisms are robust and well-explained
-- Maintain consistent terminology throughout the experience
-- Provide immediate feedback during authentication operations
-- Design with cross-device usage in mind
-- Include fallbacks for unsupported browsers/devices
-- Test with both technical and non-technical users
-
-## Resources
-
-- [WebAuthn.io](https://webauthn.io/) - WebAuthn testing tool
-- [FIDO Alliance UX Guidelines](https://fidoalliance.org/ux-guidelines/) - Official UX guidelines for FIDO authentication
-- [Nielsen Norman Group Usability Heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/) - Detailed explanation of usability heuristics
-- [Web Content Accessibility Guidelines (WCAG)](https://www.w3.org/WAI/standards-guidelines/wcag/) - Standards for web accessibility
